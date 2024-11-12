@@ -1,14 +1,22 @@
 from flask import Flask, render_template, request
-from text_processor import TextAugmenter, TextPreprocessor
-import os
+from text_processor import TextAugmenter, TextPreprocessor, ImagePreprocessor
+import base64
 
 app = Flask(__name__)
-app.config['MAX_CONTENT_LENGTH'] = 1 * 1024 * 1024  # 1MB max file size
-ALLOWED_EXTENSIONS = {'txt'}
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB max file size
+ALLOWED_EXTENSIONS = {'txt', 'jpg', 'jpeg', 'png'}
 
 def allowed_file(filename):
     return ('.' in filename and 
             filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS)
+
+def is_image_file(filename):
+    return ('.' in filename and 
+            filename.rsplit('.', 1)[1].lower() in {'jpg', 'jpeg', 'png'})
+
+@app.template_filter('b64encode')
+def b64encode_filter(data):
+    return base64.b64encode(data).decode('utf-8')
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -23,33 +31,50 @@ def index():
         
         if not allowed_file(file.filename):
             return render_template('index.html', 
-                                error='Only .txt files are allowed')
+                                error='Only txt/jpg/jpeg/png files allowed')
         
         try:
-            # Read the file content
-            text = file.read().decode('utf-8')
-            
-            # Get number of augmentations
-            num_aug = int(request.form.get('num_aug', 4))
-            
-            # Process the text
-            augmenter = TextAugmenter()
-            preprocessor = TextPreprocessor()
-            
-            # Preprocess text
-            cleaned_text = preprocessor.clean_text(text)
-            tokenized_text = preprocessor.tokenize_text(text).tolist()
-            
-            # Generate augmentations
-            augmented_texts = augmenter.generate_augmentations(text, num_aug)
-            
-            return render_template(
-                'index.html',
-                original_text=text,
-                cleaned_text=cleaned_text,
-                tokenized_text=tokenized_text,
-                augmented_texts=augmented_texts
-            )
+            if is_image_file(file.filename):
+                # Process image
+                image_processor = ImagePreprocessor()
+                image_data = file.read()
+                processed_data = image_processor.preprocess_image(image_data)
+                
+                # Generate augmentations
+                num_aug = int(request.form.get('num_aug', 4))
+                augmented_images = image_processor.augment_image(
+                    processed_data['original_image'], 
+                    num_aug
+                )
+                
+                return render_template(
+                    'index.html',
+                    is_image=True,
+                    original_size=processed_data['original_size'],
+                    original_image=processed_data['original_image'],
+                    processed_image=processed_data['processed_image'],
+                    augmented_images=augmented_images
+                )
+            else:
+                # Process text
+                text = file.read().decode('utf-8')
+                num_aug = int(request.form.get('num_aug', 4))
+                
+                augmenter = TextAugmenter()
+                preprocessor = TextPreprocessor()
+                
+                cleaned_text = preprocessor.clean_text(text)
+                tokenized_text = preprocessor.tokenize_text(text).tolist()
+                augmented_texts = augmenter.generate_augmentations(text, num_aug)
+                
+                return render_template(
+                    'index.html',
+                    is_image=False,
+                    original_text=text,
+                    cleaned_text=cleaned_text,
+                    tokenized_text=tokenized_text,
+                    augmented_texts=augmented_texts
+                )
             
         except Exception as e:
             return render_template('index.html', 

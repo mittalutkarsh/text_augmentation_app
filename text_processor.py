@@ -5,6 +5,9 @@ import torch
 from torch.nn.utils.rnn import pad_sequence
 from transformers import AutoTokenizer
 import re
+from PIL import Image
+import numpy as np
+import io
 
 class TextPreprocessor:
     def __init__(self):
@@ -45,6 +48,72 @@ class TextPreprocessor:
         text = re.sub(r'[^\w\s]', '', text)
         text = ' '.join(text.split())
         return text
+
+class ImagePreprocessor:
+    def __init__(self):
+        self.target_size = (224, 224)  # Standard size for many models
+    
+    def preprocess_image(self, image_data):
+        """Preprocess image data"""
+        # Convert bytes to image
+        image = Image.open(io.BytesIO(image_data))
+        original_image = image.copy()
+        
+        # Convert to RGB if necessary
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
+        
+        # Resize
+        resized_img = image.resize(self.target_size)
+        
+        # Convert to array
+        img_array = np.array(resized_img)
+        
+        # Normalize
+        normalized_img = img_array / 255.0
+        
+        # Convert normalized array back to image for display
+        normalized_image = Image.fromarray((normalized_img * 255).astype('uint8'))
+        
+        # Save images to bytes for display
+        original_bytes = io.BytesIO()
+        original_image.save(original_bytes, format='JPEG')
+        original_bytes = original_bytes.getvalue()
+        
+        processed_bytes = io.BytesIO()
+        normalized_image.save(processed_bytes, format='JPEG')
+        processed_bytes = processed_bytes.getvalue()
+        
+        return {
+            'original_size': image.size,
+            'original_image': original_bytes,
+            'processed_image': processed_bytes,
+            'normalized_array': normalized_img.tolist()
+        }
+    
+    def augment_image(self, image_data, num_aug=2):
+        """Generate augmented versions of the image"""
+        image = Image.open(io.BytesIO(image_data))
+        augmented_images = []
+        
+        for _ in range(num_aug):
+            # Apply random augmentations
+            aug_image = image.copy()
+            
+            # Random rotation (-30 to 30 degrees)
+            angle = random.uniform(-30, 30)
+            aug_image = aug_image.rotate(angle, expand=True)
+            
+            # Random horizontal flip
+            if random.random() > 0.5:
+                aug_image = aug_image.transpose(Image.FLIP_LEFT_RIGHT)
+            
+            # Convert to bytes for display
+            aug_bytes = io.BytesIO()
+            aug_image.save(aug_bytes, format='JPEG')
+            augmented_images.append(aug_bytes.getvalue())
+        
+        return augmented_images
 
 class TextAugmenter:
     def __init__(self):
@@ -120,4 +189,4 @@ class TextAugmenter:
             }
 
 # Add this at the end of the file
-__all__ = ['TextPreprocessor', 'TextAugmenter']
+__all__ = ['TextPreprocessor', 'TextAugmenter', 'ImagePreprocessor']

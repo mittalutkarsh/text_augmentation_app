@@ -1,20 +1,24 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Text Augmentation</title>
+    <title>File Processing Tool</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <div class="container">
-        <h1>Text Augmentation Tool</h1>
+        <h1>File Processing Tool</h1>
         <form action="/" method="post" enctype="multipart/form-data">
             <div class="form-group">
-                <label for="file">Upload Text File:</label>
-                <input type="file" id="file" name="file" accept=".txt" required>
+                <label for="file">Upload File (Text or Image):</label>
+                <input type="file" id="file" name="file" 
+                       accept=".txt,.jpg,.jpeg,.png" required>
+                <small class="file-hint">Supported formats: .txt, .jpg, .jpeg, .png</small>
             </div>
-            <div class="form-group">
-                <label for="num_aug">Number of Augmentations:</label>
-                <input type="number" id="num_aug" name="num_aug" min="1" max="10" value="4">
+            <div class="form-group" id="augmentation-options">
+                <label for="num_aug">Number of Text Augmentations:</label>
+                <input type="number" id="num_aug" name="num_aug" 
+                       min="1" max="10" value="4">
+                <small class="option-hint">(Only applies to text files)</small>
             </div>
             <button type="submit">Process File</button>
         </form>
@@ -25,27 +29,64 @@
         </div>
         {% endif %}
 
-        {% if original_text %}
-        <div class="results">
-            <h2>Original Text:</h2>
-            <pre>{{ original_text }}</pre>
-            
-            <h2>Preprocessing Results:</h2>
-            <div class="preprocessing">
-                <h3>Cleaned Text:</h3>
-                <pre>{{ cleaned_text }}</pre>
+        {% if is_image is defined %}
+            {% if is_image %}
+            <div class="results">
+                <h2>Image Processing Results:</h2>
+                <div class="preprocessing">
+                    <h3>Original Image:</h3>
+                    <img src="data:image/jpeg;base64,{{ original_image|b64encode }}"
+                         alt="Original Image">
+                    <p>Original Size: {{ original_size[0] }}x{{ original_size[1] }}</p>
+                    
+                    <h3>Preprocessed Image:</h3>
+                    <img src="data:image/jpeg;base64,{{ processed_image|b64encode }}"
+                         alt="Processed Image">
+                    <p>Resized to: 224x224, Normalized to range [0,1]</p>
+                    
+                    <h3>Preprocessing Info:</h3>
+                    <ul>
+                        <li>Resized to: 224x224</li>
+                        <li>Normalized to range [0,1]</li>
+                        <li>Converted to RGB format</li>
+                    </ul>
+                </div>
                 
-                <h3>Tokenized Text:</h3>
-                <pre>{{ tokenized_text }}</pre>
+                {% if augmented_images %}
+                <h2>Augmented Versions:</h2>
+                <div class="augmented-images">
+                    {% for aug_img in augmented_images %}
+                    <div class="augmented-image">
+                        <img src="data:image/jpeg;base64,{{ aug_img|b64encode }}"
+                             alt="Augmented Image {{ loop.index }}">
+                        <p>Augmentation {{ loop.index }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
             </div>
-            
-            <h2>Augmented Versions:</h2>
-            {% for aug in augmented_texts %}
-            <div class="augmented-text">
-                <pre>{{ aug }}</pre>
+            {% else %}
+            <div class="results">
+                <h2>Original Text:</h2>
+                <pre>{{ original_text }}</pre>
+                
+                <h2>Preprocessing Results:</h2>
+                <div class="preprocessing">
+                    <h3>Cleaned Text:</h3>
+                    <pre>{{ cleaned_text }}</pre>
+                    
+                    <h3>Tokenized Text:</h3>
+                    <pre>{{ tokenized_text }}</pre>
+                </div>
+                
+                <h2>Augmented Versions:</h2>
+                {% for aug in augmented_texts %}
+                <div class="augmented-text">
+                    <pre>{{ aug }}</pre>
+                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
-        </div>
+            {% endif %}
         {% endif %}
     </div>
 </body>

@@ -115,3 +115,55 @@ pre {
     border: 1px solid #e3e8ee;
     margin: 10px 0;
 }
+
+.file-hint, .option-hint {
+    display: block;
+    color: #666;
+    font-size: 0.9em;
+    margin-top: 5px;
+}
+
+.preprocessing img {
+    max-width: 100%;
+    height: auto;
+    margin: 10px 0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.preprocessing ul {
+    list-style-type: none;
+    padding-left: 0;
+    margin: 10px 0;
+}
+
+.preprocessing li {
+    padding: 5px 0;
+    color: #2c3e50;
+}
+
+.augmented-images {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.augmented-image {
+    text-align: center;
+    background: white;
+    padding: 10px;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.augmented-image img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+}
+
+.augmented-image p {
+    margin: 10px 0 0;
+    color: #666;
+}
