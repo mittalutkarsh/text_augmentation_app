@@ -30,6 +30,15 @@
             <h2>Original Text:</h2>
             <pre>{{ original_text }}</pre>
             
+            <h2>Preprocessing Results:</h2>
+            <div class="preprocessing">
+                <h3>Cleaned Text:</h3>
+                <pre>{{ cleaned_text }}</pre>
+                
+                <h3>Tokenized Text:</h3>
+                <pre>{{ tokenized_text }}</pre>
+            </div>
+            
             <h2>Augmented Versions:</h2>
             {% for aug in augmented_texts %}
             <div class="augmented-text">
