@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Text Augmentation Tool</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Text Augmentation Tool</h1>
+        
+        <div class="form-group">
+            <label for="inputText">Enter Text:</label>
+            <textarea id="inputText" placeholder="Enter your text here..."></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label>Number of augmentations: 
+                <input type="number" id="numAugmentations" value="4" min="1" max="10">
+            </label>
+        </div>
+        
+        <button onclick="processText()" class="process-btn">Process Text</button>
+        
+        <div id="results" class="results"></div>
+    </div>
+
+    <script>
+        function processText() {
+            const text = document.getElementById('inputText').value;
+            const numAug = document.getElementById('numAugmentations').value;
+            
+            if (!text.trim()) {
+                alert('Please enter some text');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('text', text);
+            formData.append('num_augmentations', numAug);
+
+            fetch('/augment', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resultsDiv = document.getElementById('results');
+                resultsDiv.innerHTML = '';
+                
+                // Display original text
+                addResultBlock('Original Text', data.original);
+                
+                // Display augmentations
+                if (data.augmentations && data.augmentations.length > 0) {
+                    const augBlock = document.createElement('div');
+                    augBlock.className = 'result-block';
+                    augBlock.innerHTML = `
+                        <h3>Augmented Versions:</h3>
+                        ${data.augmentations.map((aug, i) => `
+                            <div class="augmentation">
+                                <strong>${i + 1}:</strong> ${aug}
+                            </div>
+                        `).join('')}
+                    `;
+                    resultsDiv.appendChild(augBlock);
+                }
+                
+                // Display preprocessing results
+                if (data.preprocessed) {
+                    addResultBlock('Preprocessed Data', 
+                                 JSON.stringify(data.preprocessed, null, 2));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while processing the text');
+            });
+        }
+
+        function addResultBlock(title, content) {
+            const resultsDiv = document.getElementById('results');
+            const block = document.createElement('div');
+            block.className = 'result-block';
+            block.innerHTML = `
+                <h3>${title}</h3>
+                <div class="content">${content}</div>
+            `;
+            resultsDiv.appendChild(block);
+        }
+    </script>
+</body>
+</html>

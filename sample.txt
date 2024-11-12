@@ -1,0 +1,6 @@
+Hello world!
+This is a test.
+Processing text data with NLTK.
+Natural language processing is fascinating.
+Deep learning with PyTorch is powerful.
+The quick brown fox jumps over the lazy dog.
