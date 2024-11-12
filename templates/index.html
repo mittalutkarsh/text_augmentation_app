@@ -11,8 +11,8 @@
             <div class="form-group">
                 <label for="file">Upload File (Text or Image):</label>
                 <input type="file" id="file" name="file" 
-                       accept=".txt,.jpg,.jpeg,.png" required>
-                <small class="file-hint">Supported formats: .txt, .jpg, .jpeg, .png</small>
+                       accept=".txt,.jpg,.jpeg,.png,.off" required>
+                <small class="file-hint">Supported formats: .txt, .jpg, .jpeg, .png, .off</small>
             </div>
             <div class="form-group" id="augmentation-options">
                 <label for="num_aug">Number of Text Augmentations:</label>
@@ -87,6 +87,44 @@
                 {% endfor %}
             </div>
             {% endif %}
+        {% endif %}
+
+        {% if is_3d %}
+        <div class="results">
+            <h2>3D Object Processing Results:</h2>
+            <div class="preprocessing">
+                <h3>Object Information:</h3>
+                <ul>
+                    <li>Number of vertices: {{ vertices_count }}</li>
+                    <li>Number of faces: {{ faces_count }}</li>
+                </ul>
+                
+                <h3>Original View:</h3>
+                <div class="view">
+                    <img src="data:image/png;base64,{{ original_view|b64encode }}"
+                         alt="Original View">
+                    <p>Original 3D Object</p>
+                </div>
+                
+                <h3>Preprocessed View:</h3>
+                <div class="view">
+                    <img src="data:image/png;base64,{{ preprocessed_view|b64encode }}"
+                         alt="Preprocessed View">
+                    <p>Normalized and Centered</p>
+                </div>
+                
+                <h3>Augmented Views:</h3>
+                <div class="object-views">
+                    {% for view in augmented_views %}
+                    <div class="view">
+                        <img src="data:image/png;base64,{{ view|b64encode }}"
+                             alt="Augmented View {{ loop.index }}">
+                        <p>Augmentation {{ loop.index }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
         {% endif %}
     </div>
 </body>

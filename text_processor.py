@@ -8,6 +8,10 @@ import re
 from PIL import Image
 import numpy as np
 import io
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+import matplotlib
+matplotlib.use('Agg')  # Required for saving plots without display
 
 class TextPreprocessor:
     def __init__(self):
@@ -188,5 +192,188 @@ class TextAugmenter:
                 'padded_tensor': padded_texts.tolist()
             }
 
+class Object3DProcessor:
+    def __init__(self):
+        self.vertices = None
+        self.faces = None
+        self.original_data = None
+    
+    def read_off_file(self, file_data):
+        """Read OFF file and extract vertices and faces"""
+        lines = file_data.decode('utf-8').split('\n')
+        
+        # Check OFF header
+        if lines[0].strip() != 'OFF':
+            raise ValueError('Not a valid OFF file')
+        
+        # Get counts
+        vertices_count, faces_count, _ = map(int, lines[1].split())
+        
+        # Read vertices
+        self.vertices = []
+        for i in range(vertices_count):
+            x, y, z = map(float, lines[i + 2].split())
+            self.vertices.append([x, y, z])
+        
+        # Read faces
+        self.faces = []
+        current_line = vertices_count + 2
+        for i in range(faces_count):
+            face = list(map(int, lines[current_line + i].split()))[1:]
+            self.faces.append(face)
+        
+        # Store original data
+        self.original_data = {
+            'vertices': np.array(self.vertices),
+            'faces': np.array(self.faces)
+        }
+        
+        return {
+            'vertices': self.vertices,
+            'faces': self.faces
+        }
+    
+    def preprocess_3d(self):
+        """Preprocess 3D object by normalizing and centering"""
+        if self.vertices is None or self.faces is None:
+            raise ValueError("No 3D object loaded")
+        
+        vertices = np.array(self.vertices)
+        
+        # Center the object
+        center = vertices.mean(axis=0)
+        vertices = vertices - center
+        
+        # Normalize to unit cube
+        max_range = np.max(vertices.max(axis=0) - vertices.min(axis=0))
+        vertices = vertices / max_range
+        
+        return {
+            'vertices': vertices,
+            'faces': np.array(self.faces)
+        }
+    
+    def augment_3d(self, num_aug=2):
+        """Generate augmented versions of the 3D object"""
+        if self.original_data is None:
+            raise ValueError("No 3D object loaded")
+        
+        augmented_objects = []
+        vertices = self.original_data['vertices']
+        faces = self.original_data['faces']
+        
+        for _ in range(num_aug):
+            # Random rotation angles
+            theta_x = np.random.uniform(0, 360)
+            theta_y = np.random.uniform(0, 360)
+            theta_z = np.random.uniform(0, 360)
+            
+            # Rotation matrices
+            Rx = np.array([[1, 0, 0],
+                          [0, np.cos(np.radians(theta_x)), -np.sin(np.radians(theta_x))],
+                          [0, np.sin(np.radians(theta_x)), np.cos(np.radians(theta_x))]])
+            
+            Ry = np.array([[np.cos(np.radians(theta_y)), 0, np.sin(np.radians(theta_y))],
+                          [0, 1, 0],
+                          [-np.sin(np.radians(theta_y)), 0, np.cos(np.radians(theta_y))]])
+            
+            Rz = np.array([[np.cos(np.radians(theta_z)), -np.sin(np.radians(theta_z)), 0],
+                          [np.sin(np.radians(theta_z)), np.cos(np.radians(theta_z)), 0],
+                          [0, 0, 1]])
+            
+            # Apply rotations
+            rotated_vertices = vertices.copy()
+            rotated_vertices = np.dot(rotated_vertices, Rx)
+            rotated_vertices = np.dot(rotated_vertices, Ry)
+            rotated_vertices = np.dot(rotated_vertices, Rz)
+            
+            augmented_objects.append({
+                'vertices': rotated_vertices,
+                'faces': faces
+            })
+        
+        return augmented_objects
+    
+    def render_3d_view(self, vertices, faces, elevation=30, azimuth=45):
+        """Render a single 3D view"""
+        fig = plt.figure(figsize=(8, 8))
+        ax = fig.add_subplot(111, projection='3d')
+        
+        # Create polygon collection
+        verts = [vertices[face] for face in faces]
+        collection = Poly3DCollection(verts, alpha=0.5)
+        collection.set_facecolor('cyan')
+        collection.set_edgecolor('black')
+        
+        # Add collection to axes
+        ax.add_collection3d(collection)
+        
+        # Set viewing angle
+        ax.view_init(elev=elevation, azim=azimuth)
+        
+        # Set axes labels
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        
+        # Auto-scale axes
+        max_range = np.array([
+            vertices[:, 0].max() - vertices[:, 0].min(),
+            vertices[:, 1].max() - vertices[:, 1].min(),
+            vertices[:, 2].max() - vertices[:, 2].min()
+        ]).max() / 2.0
+        
+        mid_x = (vertices[:, 0].max() + vertices[:, 0].min()) * 0.5
+        mid_y = (vertices[:, 1].max() + vertices[:, 1].min()) * 0.5
+        mid_z = (vertices[:, 2].max() + vertices[:, 2].min()) * 0.5
+        
+        ax.set_xlim(mid_x - max_range, mid_x + max_range)
+        ax.set_ylim(mid_y - max_range, mid_y + max_range)
+        ax.set_zlim(mid_z - max_range, mid_z + max_range)
+        
+        # Save to bytes buffer
+        buffer = io.BytesIO()
+        plt.savefig(buffer, format='png', bbox_inches='tight')
+        plt.close()
+        
+        view_data = buffer.getvalue()
+        buffer.close()
+        
+        return view_data
+    
+    def generate_all_views(self, num_aug=2):
+        """Generate original, preprocessed, and augmented views"""
+        if self.vertices is None or self.faces is None:
+            raise ValueError("No 3D object loaded")
+        
+        # Original view
+        original_view = self.render_3d_view(
+            np.array(self.vertices), 
+            np.array(self.faces)
+        )
+        
+        # Preprocessed view
+        preprocessed_data = self.preprocess_3d()
+        preprocessed_view = self.render_3d_view(
+            preprocessed_data['vertices'],
+            preprocessed_data['faces']
+        )
+        
+        # Augmented views
+        augmented_data = self.augment_3d(num_aug)
+        augmented_views = []
+        for aug_obj in augmented_data:
+            aug_view = self.render_3d_view(
+                aug_obj['vertices'],
+                aug_obj['faces']
+            )
+            augmented_views.append(aug_view)
+        
+        return {
+            'original_view': original_view,
+            'preprocessed_view': preprocessed_view,
+            'augmented_views': augmented_views
+        }
+
 # Add this at the end of the file
-__all__ = ['TextPreprocessor', 'TextAugmenter', 'ImagePreprocessor']
+__all__ = ['TextPreprocessor', 'TextAugmenter', 'ImagePreprocessor', 'Object3DProcessor']

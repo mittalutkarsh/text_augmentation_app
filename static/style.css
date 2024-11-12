@@ -167,3 +167,29 @@ pre {
     margin: 10px 0 0;
     color: #666;
 }
+
+.object-views {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.view {
+    text-align: center;
+    background: white;
+    padding: 10px;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.view img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+}
+
+.view p {
+    margin: 10px 0 0;
+    color: #666;
+}
