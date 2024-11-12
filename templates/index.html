@@ -3,128 +3,161 @@
 <head>
     <title>File Processing Tool</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
     <div class="container">
         <h1>File Processing Tool</h1>
-        <form action="/" method="post" enctype="multipart/form-data">
-            <div class="form-group">
-                <label for="file">Upload File (Text or Image):</label>
-                <input type="file" id="file" name="file" 
-                       accept=".txt,.jpg,.jpeg,.png,.off" required>
-                <small class="file-hint">Supported formats: .txt, .jpg, .jpeg, .png, .off</small>
-            </div>
-            <div class="form-group" id="augmentation-options">
-                <label for="num_aug">Number of Text Augmentations:</label>
-                <input type="number" id="num_aug" name="num_aug" 
-                       min="1" max="10" value="4">
-                <small class="option-hint">(Only applies to text files)</small>
-            </div>
-            <button type="submit">Process File</button>
-        </form>
-        
+        <div class="card">
+            <form action="/" method="post" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="file">Upload File</label>
+                    <input type="file" id="file" name="file" 
+                           accept=".txt,.jpg,.jpeg,.png,.off" required>
+                    <small class="file-hint">Supported formats: .txt, .jpg, .jpeg, .png, .off</small>
+                </div>
+                <div class="form-group">
+                    <label for="num_aug">Number of Augmentations</label>
+                    <input type="number" id="num_aug" name="num_aug" 
+                           min="1" max="10" value="4">
+                    <small class="option-hint">Number of variations to generate</small>
+                </div>
+                <button type="submit">Process File</button>
+            </form>
+        </div>
+
         {% if error %}
         <div class="error">
             {{ error }}
         </div>
         {% endif %}
 
-        {% if is_image is defined %}
-            {% if is_image %}
-            <div class="results">
-                <h2>Image Processing Results:</h2>
-                <div class="preprocessing">
-                    <h3>Original Image:</h3>
-                    <img src="data:image/jpeg;base64,{{ original_image|b64encode }}"
-                         alt="Original Image">
-                    <p>Original Size: {{ original_size[0] }}x{{ original_size[1] }}</p>
-                    
-                    <h3>Preprocessed Image:</h3>
-                    <img src="data:image/jpeg;base64,{{ processed_image|b64encode }}"
-                         alt="Processed Image">
-                    <p>Resized to: 224x224, Normalized to range [0,1]</p>
-                    
-                    <h3>Preprocessing Info:</h3>
-                    <ul>
-                        <li>Resized to: 224x224</li>
-                        <li>Normalized to range [0,1]</li>
-                        <li>Converted to RGB format</li>
-                    </ul>
+        {% if is_image and not is_3d %}
+            <div class="card">
+                <h2>Image Processing Results</h2>
+                <div class="stats-container">
+                    <div class="stat-card">
+                        <div class="stat-title">Original Size</div>
+                        <div class="stat-value">{{ original_size[0] }}x{{ original_size[1] }}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Processed Size</div>
+                        <div class="stat-value">224x224</div>
+                    </div>
                 </div>
                 
-                {% if augmented_images %}
-                <h2>Augmented Versions:</h2>
-                <div class="augmented-images">
+                <div class="grid-container">
+                    <div class="grid-item">
+                        <img src="data:image/jpeg;base64,{{ original_image|b64encode }}"
+                             alt="Original Image">
+                        <div class="grid-item-content">
+                            <h3 class="grid-item-title">Original Image</h3>
+                        </div>
+                    </div>
+                    
+                    <div class="grid-item">
+                        <img src="data:image/jpeg;base64,{{ processed_image|b64encode }}"
+                             alt="Processed Image">
+                        <div class="grid-item-content">
+                            <h3 class="grid-item-title">Preprocessed Image</h3>
+                        </div>
+                    </div>
+                    
                     {% for aug_img in augmented_images %}
-                    <div class="augmented-image">
+                    <div class="grid-item">
                         <img src="data:image/jpeg;base64,{{ aug_img|b64encode }}"
                              alt="Augmented Image {{ loop.index }}">
-                        <p>Augmentation {{ loop.index }}</p>
+                        <div class="grid-item-content">
+                            <h3 class="grid-item-title">Augmentation {{ loop.index }}</h3>
+                        </div>
                     </div>
                     {% endfor %}
                 </div>
-                {% endif %}
             </div>
-            {% else %}
-            <div class="results">
-                <h2>Original Text:</h2>
-                <pre>{{ original_text }}</pre>
-                
-                <h2>Preprocessing Results:</h2>
+        {% endif %}
+
+        {% if not is_image and not is_3d and original_text %}
+            <div class="card">
+                <h2>Text Processing Results</h2>
+                <div class="stats-container">
+                    <div class="stat-card">
+                        <div class="stat-title">Original Length</div>
+                        <div class="stat-value">{{ original_text|length }}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Token Count</div>
+                        <div class="stat-value">{{ tokenized_text|length }}</div>
+                    </div>
+                </div>
+
                 <div class="preprocessing">
-                    <h3>Cleaned Text:</h3>
+                    <h3>Original Text</h3>
+                    <pre>{{ original_text }}</pre>
+                    
+                    <h3>Cleaned Text</h3>
                     <pre>{{ cleaned_text }}</pre>
                     
-                    <h3>Tokenized Text:</h3>
+                    <h3>Tokenized Text</h3>
                     <pre>{{ tokenized_text }}</pre>
                 </div>
                 
-                <h2>Augmented Versions:</h2>
-                {% for aug in augmented_texts %}
-                <div class="augmented-text">
-                    <pre>{{ aug }}</pre>
-                </div>
-                {% endfor %}
-            </div>
-            {% endif %}
-        {% endif %}
-
-        {% if is_3d %}
-        <div class="results">
-            <h2>3D Object Processing Results:</h2>
-            <div class="preprocessing">
-                <h3>Object Information:</h3>
-                <ul>
-                    <li>Number of vertices: {{ vertices_count }}</li>
-                    <li>Number of faces: {{ faces_count }}</li>
-                </ul>
-                
-                <h3>Original View:</h3>
-                <div class="view">
-                    <img src="data:image/png;base64,{{ original_view|b64encode }}"
-                         alt="Original View">
-                    <p>Original 3D Object</p>
-                </div>
-                
-                <h3>Preprocessed View:</h3>
-                <div class="view">
-                    <img src="data:image/png;base64,{{ preprocessed_view|b64encode }}"
-                         alt="Preprocessed View">
-                    <p>Normalized and Centered</p>
-                </div>
-                
-                <h3>Augmented Views:</h3>
-                <div class="object-views">
-                    {% for view in augmented_views %}
-                    <div class="view">
-                        <img src="data:image/png;base64,{{ view|b64encode }}"
-                             alt="Augmented View {{ loop.index }}">
-                        <p>Augmentation {{ loop.index }}</p>
+                <h3>Augmented Versions</h3>
+                <div class="grid-container">
+                    {% for aug_text in augmented_texts %}
+                    <div class="grid-item">
+                        <div class="grid-item-content">
+                            <h3 class="grid-item-title">Augmentation {{ loop.index }}</h3>
+                            <pre class="augmented-text">{{ aug_text }}</pre>
+                        </div>
                     </div>
                     {% endfor %}
                 </div>
             </div>
-        </div>
+        {% endif %}
+
+        {% if is_3d %}
+            <div class="card">
+                <h2>3D Object Processing Results</h2>
+                <div class="stats-container">
+                    <div class="stat-card">
+                        <div class="stat-title">Vertices</div>
+                        <div class="stat-value">{{ vertices_count }}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Faces</div>
+                        <div class="stat-value">{{ faces_count }}</div>
+                    </div>
+                </div>
+                
+                <div class="grid-container">
+                    <div class="grid-item">
+                        <img src="data:image/png;base64,{{ original_view|b64encode }}"
+                             alt="Original View">
+                        <div class="grid-item-content">
+                            <h3 class="grid-item-title">Original View</h3>
+                        </div>
+                    </div>
+                    
+                    <div class="grid-item">
+                        <img src="data:image/png;base64,{{ preprocessed_view|b64encode }}"
+                             alt="Preprocessed View">
+                        <div class="grid-item-content">
+                            <h3 class="grid-item-title">Preprocessed View</h3>
+                        </div>
+                    </div>
+                    
+                    {% for view in augmented_views %}
+                    <div class="grid-item">
+                        <img src="data:image/png;base64,{{ view|b64encode }}"
+                             alt="Augmented View {{ loop.index }}">
+                        <div class="grid-item-content">
+                            <h3 class="grid-item-title">Augmentation {{ loop.index }}</h3>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
         {% endif %}
     </div>
 </body>
